@@ -11,15 +11,19 @@ function initExampleWidget() {
   let solvedGroups = [];
   let selected = [];
   let message = "";
+  let justSolved = null;
 
   function render() {
     const remaining = order.filter((t) => !solvedGroups.includes(t.group));
     const done = solvedGroups.length === 4;
 
+    const revealGroup = justSolved;
+    justSolved = null;
     const solvedHtml = solvedGroups
       .map((g) => {
         const cat = board.categories[g - 1];
-        return `<div class="solved-row ${COLOR_KEYS[g]}">
+        const revealCls = g === revealGroup ? " reveal" : "";
+        return `<div class="solved-row${revealCls} ${COLOR_KEYS[g]}">
           <div class="cat-title">${cat.title}</div>
           ${cat.words.map((w) => `<div class="word">${w}</div>`).join("")}
         </div>`;
@@ -65,6 +69,7 @@ function initExampleWidget() {
         order = shuffle(order);
         solvedGroups = [];
         selected = [];
+        justSolved = null;
         message = "";
         render();
       });
@@ -81,7 +86,9 @@ function initExampleWidget() {
     const bestCount = counts[bestGroup];
 
     if (bestCount === 4) {
-      solvedGroups.push(parseInt(bestGroup, 10));
+      const g = parseInt(bestGroup, 10);
+      solvedGroups.push(g);
+      justSolved = g;
       selected = [];
       message = "מעולה! קטגוריה נפתרה 🎯";
       render();

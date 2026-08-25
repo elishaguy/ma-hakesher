@@ -156,6 +156,19 @@ h1, h2, h3 {
 .status-pill.solved { background: var(--green); color: var(--green-ink); }
 .status-pill.failed { background: var(--red); color: var(--red-ink); }
 
+.demo-banner {
+  background: var(--accent-soft);
+  border: 1.5px solid var(--accent);
+  border-radius: 14px;
+  padding: 14px 16px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 16px 0;
+  color: var(--ink);
+}
+.demo-banner a { color: var(--accent); font-weight: 700; text-decoration: underline; }
+
 .empty-note {
   text-align: center;
   color: var(--ink-light);
@@ -243,6 +256,8 @@ h1, h2, h3 {
   padding: 12px 6px;
   margin-bottom: 8px;
   text-align: center;
+}
+.solved-row.reveal {
   animation: reveal 0.35s ease;
 }
 .solved-row .cat-title {

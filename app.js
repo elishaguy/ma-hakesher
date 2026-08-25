@@ -49,6 +49,8 @@ function initApp() {
   } else if (params.get("demo") === "1") {
     GAME = DEMO_DATA;
     GAME._id = "demo";
+    const banner = document.getElementById("demo-banner");
+    if (banner) banner.style.display = "block";
   } else {
     showLoadError('זה עמוד המשחק - אבל לא נשלח אליו שום משחק. 🤔<br />אם קיבלתם קישור למשחק, ודאו שהעתקתם אותו במלואו.<br />רוצים ליצור משחק חדש? <a href="create.html">לחצו כאן</a>.');
     return;
@@ -137,6 +139,8 @@ function getOrInitBoardState(idx) {
       triesLeft: getTries(),
       clueUsed: false,
       solveHistory: [],
+      guessHistory: [], // every submitted guess, each an array of 4 group numbers, in submission order
+      justSolved: null, // group number solved by the most recent guess, so only that row plays the reveal animation
     };
     saveState();
   }
@@ -164,10 +168,13 @@ function renderBoardView() {
   const st = boardRuntime;
   const view = document.getElementById("connections-board-view");
 
+  const justSolved = st.justSolved;
+  st.justSolved = null;
   const solvedRowsHtml = st.solveHistory
     .map((g) => {
       const cat = board.categories[g - 1];
-      return `<div class="solved-row ${COLOR_KEYS[g]}">
+      const revealCls = g === justSolved ? " reveal" : "";
+      return `<div class="solved-row${revealCls} ${COLOR_KEYS[g]}">
         <div class="cat-title">${cat.title}</div>
         ${cat.words.map((w) => `<div class="word">${w}</div>`).join("")}
       </div>`;
@@ -284,18 +291,21 @@ function submitGuess() {
   const st = boardRuntime;
   if (st.selected.length !== 4) return;
 
+  const guessGroups = st.selected.map((word) => st.order.find((t) => t.word === word).group);
   const counts = {};
-  st.selected.forEach((word) => {
-    const tile = st.order.find((t) => t.word === word);
-    counts[tile.group] = (counts[tile.group] || 0) + 1;
+  guessGroups.forEach((g) => {
+    counts[g] = (counts[g] || 0) + 1;
   });
   const bestGroup = Object.keys(counts).reduce((a, b) => (counts[a] > counts[b] ? a : b));
   const bestCount = counts[bestGroup];
+
+  st.guessHistory.push(guessGroups);
 
   if (bestCount === 4) {
     const g = parseInt(bestGroup, 10);
     st.solvedGroups.push(g);
     st.solveHistory.push(g);
+    st.justSolved = g;
     st.selected = [];
     st.message = "מעולה! קטגוריה נפתרה 🎯";
   } else {
@@ -315,13 +325,20 @@ function buildConnectionsShareText(board, st) {
   const lines = [];
   const titlePrefix = GAME.title && GAME.title.trim() ? GAME.title : "מה הקשר";
   lines.push(`${titlePrefix} - לוח ${currentBoardIndex + 1} 🧩`);
-  const order = st.solveHistory.length ? st.solveHistory : [1, 2, 3, 4];
+
   const emoji = { g1: "🟩", g2: "🟨", g3: "🟧", g4: "🟥" };
-  order.forEach((g) => {
-    lines.push(emoji[COLOR_KEYS[g]].repeat(4));
+  (st.guessHistory || []).forEach((groups) => {
+    lines.push(groups.map((g) => emoji[COLOR_KEYS[g]]).join(""));
   });
+
   const won = st.solvedGroups.length === 4;
-  lines.push(won ? `נפתר עם ${getTries() - st.triesLeft} נסיונות ✅` : "לא נפתר הפעם 😅");
+  const mistakes = getTries() - st.triesLeft;
+  const clueNote = st.clueUsed ? " ועם רמז" : "";
+  if (won) {
+    lines.push(mistakes === 0 ? `נפתר בלי טעויות${clueNote}! ✅` : `נפתר עם ${mistakes} טעויות${clueNote} ✅`);
+  } else {
+    lines.push(`לא נפתר הפעם - ${mistakes} טעויות${clueNote} 😅`);
+  }
   return lines.join("\n");
 }
 
