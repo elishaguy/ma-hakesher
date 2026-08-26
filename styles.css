@@ -413,7 +413,16 @@ footer.credit a { color: var(--accent); font-weight: 600; text-decoration: none;
   margin-bottom: 8px;
 }
 .category-block .cat-head input[type="text"] { flex: 1; }
-.category-block .rank-select { width: auto; min-width: 90px; }
+.cat-color-badge {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-light);
+  background: var(--tile-bg);
+  border-radius: 999px;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
 
 .word-row {
   display: flex;

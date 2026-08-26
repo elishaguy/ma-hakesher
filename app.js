@@ -184,6 +184,8 @@ function renderBoardView() {
   const remainingTiles = st.order.filter((t) => !st.solvedGroups.includes(t.group));
 
   const finished = st.solvedGroups.length === 4 || st.triesLeft === 0;
+  const clueGroup = getClueGroup(board, st);
+  const clueDisabled = clueGroup !== null && st.solvedGroups.includes(clueGroup);
 
   let tilesHtml = "";
   if (!finished) {
@@ -222,7 +224,7 @@ function renderBoardView() {
     ${
       !finished
         ? `<div class="btn-row">
-            <button class="action secondary" id="clue-btn" ${st.clueUsed ? "disabled" : ""}>רמז 💡</button>
+            <button class="action secondary" id="clue-btn" ${clueDisabled ? "disabled" : ""}>רמז 💡</button>
             <button class="action secondary" id="clear-btn">נקו בחירה</button>
             <button class="action primary" id="submit-btn" ${st.selected.length === 4 ? "" : "disabled"}>הגישו</button>
           </div>`
@@ -274,12 +276,23 @@ function toggleTile(word) {
   renderBoardView();
 }
 
+function getClueWords(board) {
+  return Array.isArray(board.clue) && board.clue.length === 2 ? board.clue : board.categories[3].words.slice(0, 2);
+}
+
+/* Which group the clue's words belong to, so we know when to disable the clue button
+   (once that category is solved, there's nothing left to hint). */
+function getClueGroup(board, st) {
+  const tile = st.order.find((t) => t.word === getClueWords(board)[0]);
+  return tile ? tile.group : null;
+}
+
 function useClue() {
   const board = GAME.boards[currentBoardIndex];
   const st = boardRuntime;
-  if (st.clueUsed) return;
-  let clueWords = Array.isArray(board.clue) && board.clue.length === 2 ? board.clue.slice() : board.categories[3].words.slice(0, 2);
-  st.selected = clueWords;
+  const clueGroup = getClueGroup(board, st);
+  if (clueGroup !== null && st.solvedGroups.includes(clueGroup)) return;
+  st.selected = getClueWords(board);
   st.clueUsed = true;
   st.message = "רמז: שתי המילים שנבחרו שייכות לאותה קטגוריה 💡";
   saveState();

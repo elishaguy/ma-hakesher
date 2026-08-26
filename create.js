@@ -18,8 +18,16 @@ const CATEGORY_PLACEHOLDERS = [
   { title: "מותגי נעלי הליכה", words: ["מרל", "סלומון", "קיין", "הוקה"] },
 ];
 
+/* The order categories are entered in IS their difficulty color - no ranking needed. */
+const CATEGORY_COLOR_LABELS = [
+  { emoji: "🟩", label: "קל" },
+  { emoji: "🟨", label: "בינוני" },
+  { emoji: "🟧", label: "קשה" },
+  { emoji: "🟥", label: "הכי קשה" },
+];
+
 function makeEmptyCategory() {
-  return { title: "", words: ["", "", "", ""], rank: "" };
+  return { title: "", words: ["", "", "", ""] };
 }
 
 function makeEmptyBoard() {
@@ -68,10 +76,8 @@ function renderBoardCard(boardIndex) {
 
   const catsHtml = board.categories
     .map((cat, c) => {
-      const rankOptions = [1, 2, 3, 4]
-        .map((r) => `<option value="${r}" ${String(cat.rank) === String(r) ? "selected" : ""}>${r}</option>`)
-        .join("");
       const example = CATEGORY_PLACEHOLDERS[c % CATEGORY_PLACEHOLDERS.length];
+      const colorLabel = CATEGORY_COLOR_LABELS[c];
       const wordsHtml = cat.words
         .map((w, wi) => {
           const isClue = board.clue.some((ref) => ref.cat === c && ref.word === wi);
@@ -83,11 +89,8 @@ function renderBoardCard(boardIndex) {
         .join("");
       return `<div class="category-block">
         <div class="cat-head">
+          <span class="cat-color-badge">${colorLabel.emoji} ${colorLabel.label}</span>
           <input type="text" class="cat-title-input" data-board="${boardIndex}" data-cat="${c}" value="${escapeAttr(cat.title)}" placeholder="לדוגמה: ${escapeAttr(example.title)}" />
-          <select class="rank-select" data-board="${boardIndex}" data-cat="${c}">
-            <option value="" ${!cat.rank ? "selected" : ""}>קושי</option>
-            ${rankOptions}
-          </select>
         </div>
         ${wordsHtml}
       </div>`;
@@ -170,13 +173,6 @@ function attachBoardListeners() {
     });
   });
 
-  container.querySelectorAll(".rank-select").forEach((el) => {
-    el.addEventListener("change", () => {
-      draft.boards[parseInt(el.dataset.board, 10)].categories[parseInt(el.dataset.cat, 10)].rank = el.value;
-      saveDraft();
-    });
-  });
-
   container.querySelectorAll(".word-input").forEach((el) => {
     el.addEventListener("input", () => {
       const b = parseInt(el.dataset.board, 10);
@@ -234,10 +230,6 @@ function validateDraft() {
     });
     if (missingText) errors.push(`${label}: מלאו שם לכל קטגוריה וארבע מילים בכל אחת.`);
 
-    const ranks = board.categories.map((c) => String(c.rank));
-    const ranksOk = ["1", "2", "3", "4"].every((r) => ranks.includes(r)) && ranks.length === 4 && new Set(ranks).size === 4;
-    if (!ranksOk) errors.push(`${label}: בחרו דרגת קושי (1-4) לכל קטגוריה, כל דרגה פעם אחת.`);
-
     const lower = allWords.filter(Boolean).map((w) => w.toLowerCase());
     if (new Set(lower).size !== lower.length && lower.length === 16) {
       errors.push(`${label}: יש מילים שחוזרות על עצמן - כל 16 המילים בלוח צריכות להיות שונות.`);
@@ -256,11 +248,7 @@ function buildGameFromDraft() {
     createdBy: draft.createdBy.trim(),
     tries: DEFAULT_TRIES,
     boards: draft.boards.map((board) => {
-      const categories = new Array(4);
-      board.categories.forEach((cat) => {
-        const rank = parseInt(cat.rank, 10);
-        categories[rank - 1] = { title: cat.title.trim(), words: cat.words.map((w) => w.trim()) };
-      });
+      const categories = board.categories.map((cat) => ({ title: cat.title.trim(), words: cat.words.map((w) => w.trim()) }));
       const clue = board.clue.map((ref) => board.categories[ref.cat].words[ref.word].trim());
       return { level: board.level, categories, clue };
     }),
